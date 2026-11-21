@@ -34,3 +34,13 @@ Shared cloud browser tools are unavailable; verification used installed Chromium
 P3: longer coaching conversations scroll within their own area. Additional animation and a broader conversational model are outside this release. Reference-to-code typography is intentionally compact enough to keep the full task visible on a phone.
 
 final result: passed
+
+## Exploration and subscription coaching update
+
+User-directed functional revision: off-target legal moves remain on the board, an exploration panel replaces the task rules while exploring, and open-ended coaching uses an explicit ChatGPT handoff. Existing reference colors, board assets and responsive structure are retained; the new controls intentionally extend that reference.
+
+Evidence: `test/artifacts/exploration-desktop.png` (1440px desktop) and `test/artifacts/exploration-mobile.png` (390px phone), opened and visually inspected. The phone page scrolls naturally to accommodate exploration history and the subscription handoff. No horizontal clipping. The board remains prominent, undo and return controls are reachable, and handoff copy does not imply a live ChatGPT integration. Introductory copy now tracks the explored position rather than repeating a potentially stale White-to-move exercise instruction.
+
+Validation: browser checks passed for retained mistakes, legal replies, reload recovery, undo, return, ChatGPT snapshot contents, clipboard copy, challenge hint accounting, underpromotion and logout. Core SQL and all lesson tests continue to pass. Five test cases pass; one case contains the complete course/database suite. Existing Supabase schema is unchanged.
+
+final result: passed

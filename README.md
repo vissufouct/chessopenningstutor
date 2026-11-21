@@ -1,6 +1,6 @@
 # First Moves
 
-A responsive, single-learner chess classroom for the ideas in chapters 1–2 of Yasser Seirawan’s *Winning Chess Openings*. Twelve lessons combine original teaching summaries, legal chessboard interaction, replayable examples, hints, reflection questions, and challenge XP. The coach is a transparent, rule-based lesson companion, not an LLM. No AI API key is required.
+A responsive, single-learner chess classroom for the ideas in chapters 1–2 of Yasser Seirawan’s *Winning Chess Openings*. Twelve lessons combine original teaching summaries, legal chessboard interaction, replayable examples, hints, reflection questions, and challenge XP. Exercise feedback and hints are prepared lesson content. For open-ended coaching, “Discuss this board in ChatGPT” exports the exact current position, explored moves and question to paste into ChatGPT using the learner’s own subscription. This is an explicit handoff, not an embedded model or live board connection. No AI API key is required.
 
 ## Run locally
 
@@ -64,6 +64,14 @@ XP: +20 for a first challenge solve, +10 after any saved hint, up to −5 for a 
 
 ## Privacy and persistence
 
-Supabase Auth handles passwords. The app stores lesson progress, XP, completion and the last coaching response in the learner's Supabase project; session tokens are stored by the Supabase browser SDK. The current conversation is kept in memory and clears when changing lessons or reloading. Export downloads progress locally. No analytics, ads, external AI calls or publicly served personal data are included.
+Supabase Auth handles passwords. The app stores lesson progress, XP, completion and the last coaching response in the learner's Supabase project; session tokens are stored by the Supabase browser SDK. In-app lesson feedback is kept in memory and clears when changing lessons or reloading. Free explorations are stored in this browser, keyed by learner and lesson; they do not sync across devices. ChatGPT conversations live in the learner’s own ChatGPT account and are not imported into the app. Export downloads progress locally. No analytics, ads, external AI calls or publicly served personal data are included.
 
 See `docs/CONTENT.md` and `public/pieces/ATTRIBUTION.md` for source mapping and asset credits.
+
+## Explore mistakes and use your ChatGPT subscription
+
+Any legal off-target move stays on the board. Play both sides, undo one move, or return to the exercise. You can also select **Explore freely** before attempting a scored move. Exploring has no further XP penalties; a missed challenge attempt is scored once under the existing rules. Completing the original puzzle still earns its existing reward. Pawn promotion supports queen, rook, bishop and knight.
+
+Type a question in **Talk it through with ChatGPT**, open the handoff, copy the context, then open ChatGPT and paste it. The context includes the current FEN, legal moves, piece placement, lesson context, and the complete exploration variation. It does not include the app login or account tokens. Copy an updated snapshot whenever the board changes. Copying a challenge snapshot through the copy button records hint use before handing off.
+
+Your ChatGPT subscription does not provide API access to this website. Keeping this conversation in ChatGPT avoids adding a separately billed model API. The app does not read ChatGPT replies, control the ChatGPT account, or automatically apply suggested moves.

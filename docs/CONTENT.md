@@ -17,4 +17,6 @@ Source: uploaded scan of Yasser Seirawan, *Winning Chess Openings*. The first tw
 | Pieces working together | 29–30 | Book's Legall's Mate; Bxf7+ Ke7 Nd5# |
 | Learn from the game | 28–32 | Original recap task, accepting Bc4 and Bb5 |
 
-The app explicitly distinguishes a task's accepted goal from a claim that every other legal move is a blunder. Its coach is scripted and bounded to the selected chapter material and a few basic rule explanations. It is not an engine, general conversational AI, or rating estimator. Multi-ply forced exercise replies are deterministic. No training game engine or chapters beyond 1–2 are included.
+The app explicitly distinguishes a task's accepted goal from a claim that every other legal move is a blunder. Its in-app lesson explanations remain scripted; open-ended conversation is handed off with an exact board snapshot to the learner’s own ChatGPT account. It is not an engine, general conversational AI, or rating estimator. Multi-ply forced exercise replies are deterministic. No training game engine or chapters beyond 1–2 are included.
+
+Free explorations are not judged against the exercise solution list. Every legal move can be played and undone. The original exercise still has a defined teaching goal; missing it is not labelled a universal chess blunder.

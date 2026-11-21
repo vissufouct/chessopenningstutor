@@ -13,6 +13,7 @@ const errors = [];
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1024 },
   reducedMotion: "reduce",
+  permissions: ["clipboard-read", "clipboard-write"],
 });
 const user = {
   id: USER,
@@ -113,19 +114,60 @@ try {
   assert.equal((await state(db)).xp, 20);
   await page.getByRole("button", { name: "Replay", exact: true }).click();
   await page.getByRole("button", { name: "View source", exact: false }).click();
-  await page.locator("dialog").waitFor();
+  await page.locator("dialog[open]").waitFor();
   await page.getByRole("button", { name: "Close source" }).click();
   await page.getByRole("button", { name: "Watch the story" }).click();
   await page.getByRole("button", { name: "Next move", exact: true }).click();
   await page.getByText("Replay · 1 / 6 half-moves").waitFor();
   await page.getByRole("button", { name: "Try the position" }).click();
-  await page.getByLabel("Ask your coach").fill("What is the centre?");
-  await page.getByRole("button", { name: "Send message" }).click();
+  // A missed legal move remains on the board and can be followed by a reply.
+  await page.locator('[data-square="d4"]').click();
+  await page.locator('[data-square="e5"]').click();
+  await page.getByRole("heading", { name: "What happens next?" }).waitFor();
+  assert.match(
+    await page.locator('[data-square="e5"]').getAttribute("aria-label"),
+    /White pawn/,
+  );
+  await page.locator('[data-square="f8"]').click();
+  await page.locator('[data-square="b4"]').click();
+  await page.getByText("White to move · in check", { exact: true }).waitFor();
+  await page.reload();
+  await page.getByRole("heading", { name: "What happens next?" }).waitFor();
+  await page.getByLabel("Question for ChatGPT").fill("What did I overlook?");
   await page
-    .getByText("The four central squares are d4, e4, d5 and e5.", {
-      exact: false,
-    })
-    .waitFor();
+    .getByRole("button", { name: "Discuss board in ChatGPT", exact: true })
+    .click();
+  const snapshot = await page
+    .getByLabel("Board context for ChatGPT")
+    .inputValue();
+  assert.ok(snapshot.includes("dxe5 Bb4+"));
+  assert.ok(snapshot.includes("What did I overlook?"));
+  assert.ok(snapshot.includes("Current FEN:"));
+  await page
+    .getByRole("button", { name: "1. Copy position", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Copied!", exact: true }).waitFor();
+  assert.equal(
+    await page
+      .getByRole("link", { name: "2. Open ChatGPT" })
+      .getAttribute("href"),
+    "https://chatgpt.com/",
+  );
+  await page.getByRole("button", { name: "Close ChatGPT handoff" }).click();
+  await page.screenshot({
+    path: "test/artifacts/exploration-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test/artifacts/exploration-mobile.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Undo last move" }).click();
+  await page.getByText("Black to move", { exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Return to exercise", exact: true })
+    .click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Open lessons" }).click();
   await page
@@ -137,9 +179,17 @@ try {
   await page.getByRole("button", { name: "Challenge", exact: true }).click();
   await page.locator('[data-square="a2"]').click();
   await page.locator('[data-square="a3"]').click();
-  await page.getByText("−5 XP · new missed attempt").waitFor();
+  await page.getByRole("heading", { name: "What happens next?" }).waitFor();
   assert.equal((await state(db)).xp, 15);
-  await page.getByRole("button", { name: "Hint · solve for +10 XP" }).click();
+  await page
+    .getByRole("button", { name: "Return to exercise", exact: true })
+    .click();
+  await page.getByRole('button',{name:'Discuss board in ChatGPT',exact:true}).click();
+  await page.getByText('Using outside coaching on this challenge counts as a hint:',{exact:false}).waitFor();
+  await page.getByRole('button',{name:'1. Copy position'}).click();
+  await page.getByRole('button',{name:'Copied!',exact:true}).waitFor();
+  assert.ok((await state(db)).progress['central-start'].hinted);
+  await page.getByRole('button',{name:'Close ChatGPT handoff'}).click();
   await page
     .getByText("Choose the d-pawn or e-pawn.", { exact: true })
     .waitFor();
@@ -165,13 +215,30 @@ try {
       `horizontal overflow at ${width}`,
     );
   }
+  await page.evaluate(
+    ({ id }) =>
+      localStorage.setItem(
+        `first-moves:exploration:${id}:look-before-copy`,
+        JSON.stringify({ anchor: "7k/P7/8/8/8/8/8/7K w - - 0 1", moves: [] }),
+      ),
+    { id: USER },
+  );
+  await page.reload();
+  await page.getByRole("heading", { name: "What happens next?" }).waitFor();
+  await page.locator('[data-square="a7"]').click();
+  await page.locator('[data-square="a8"]').click();
+  await page.getByRole("button", { name: "Promote to knight" }).click();
+  assert.match(
+    await page.locator('[data-square="a8"]').getAttribute("aria-label"),
+    /White knight/,
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Open lessons" }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.getByRole("button", { name: "Enter your classroom" }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser checks passed: login, legal board interaction, challenge rewards, reflection, persisted reload, replay protection, source dialog, story replay, coaching, mobile navigation, hints, penalties, responsive widths, logout; no page errors. Supabase HTTP was simulated; the actual migration ran on local PGlite Postgres.",
+    "Browser checks passed: login, legal board interaction, challenge rewards, reflection, persisted reload, replay protection, source dialog, story replay, persistent exploration, undo, underpromotion, ChatGPT snapshot handoff, mobile navigation, hints, penalties, responsive widths, logout; no page errors. Supabase HTTP was simulated; the actual migration ran on local PGlite Postgres.",
   );
 } finally {
   await browser.close();

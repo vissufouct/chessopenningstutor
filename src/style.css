@@ -1304,5 +1304,175 @@ dialog .fine {
     margin: 0;
   }
 }
-@media(min-width:901px){.intro-bubble p{font-size:17px}.task-copy{font-size:15px}.rule-row{font-size:15px}.hint-button{font-size:14px}.rules>strong{font-size:14px}.source-link{font-size:12px}}
-@media(max-width:650px){.story-context{display:none}}
+@media (min-width: 901px) {
+  .intro-bubble p {
+    font-size: 17px;
+  }
+  .task-copy {
+    font-size: 15px;
+  }
+  .rule-row {
+    font-size: 15px;
+  }
+  .hint-button {
+    font-size: 14px;
+  }
+  .rules > strong {
+    font-size: 14px;
+  }
+  .source-link {
+    font-size: 12px;
+  }
+}
+@media (max-width: 650px) {
+  .story-context {
+    display: none;
+  }
+}
+.board-frame {
+  position: relative;
+}
+.promotion-picker {
+  position: absolute;
+  inset: 15% 2% auto 7%;
+  z-index: 5;
+  background: white;
+  border: 2px solid #536df5;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 30px #17213a30;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.promotion-picker strong {
+  width: 100%;
+  text-align: center;
+}
+.promotion-picker button {
+  display: flex;
+  flex-direction: column;
+  min-width: 48px;
+  padding: 5px;
+  font-size: 12px;
+}
+.promotion-picker img {
+  width: 42px;
+  height: 42px;
+}
+.exploration-panel p {
+  font-size: 14px;
+  color: #697395;
+}
+.exploration-panel h2 {
+  font-size: 24px;
+}
+.exploration-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.exploration-actions button {
+  border: 1px solid #c5cfe7;
+  border-radius: 9px;
+  padding: 10px;
+  font-size: 13px;
+  min-height: 42px;
+}
+.exploration-panel > .fine {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.variation-moves {
+  max-height: 100px;
+  overflow: auto;
+  background: #f0f3fc;
+  padding: 9px;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.explore-button {
+  margin-top: 10px;
+}
+.chat-handoff-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.chat-handoff-label span {
+  font-size: 11px;
+  color: #697395;
+}
+.handoff-note {
+  margin: 7px 0 0;
+}
+.snapshot-label {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+}
+.snapshot-label textarea {
+  display: block;
+  width: 100%;
+  height: 180px;
+  margin: 8px 0 16px;
+  padding: 12px;
+  border: 1px solid #c5cfe7;
+  border-radius: 8px;
+  resize: vertical;
+  font: 12px/1.5 monospace;
+  color: #263452;
+}
+.handoff-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.handoff-actions a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.chat-dialog {
+  max-width: 620px;
+}
+.conversation .message p {
+  white-space: pre-wrap;
+}
+@media (max-width: 650px) {
+  .chat-handoff-label strong {
+    font-size: 13px;
+  }
+  .chat-handoff-label span {
+    font-size: 10px;
+  }
+  .handoff-note {
+    font-size: 10px;
+  }
+  .exploration-panel {
+    background: #f3f5fc;
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .exploration-panel h2 {
+    font-size: 20px;
+  }
+  .exploration-panel .primary {
+    width: 100%;
+    font-size: 13px;
+  }
+  .chat-dialog {
+    padding: 28px 20px;
+  }
+  .chat-dialog h2 {
+    font-size: 23px;
+  }
+  .composer input {
+    font-size: 12px;
+  }
+}

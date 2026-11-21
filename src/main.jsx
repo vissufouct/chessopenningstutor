@@ -6,6 +6,13 @@ import React, { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { Chess } from "chess.js";
 import {
+  addMove,
+  replayLine,
+  playUci,
+  boardStatus,
+  chatgptContext,
+} from "./exploration";
+import {
   IconChessKnightFilled,
   IconMenu2,
   IconX,
@@ -148,17 +155,31 @@ function Login({ onSession }) {
   );
 }
 function Board({ fen, onMove, disabled, lastMove }) {
+  const [promotion, setPromotion] = useState(null);
   const [selected, setSelected] = useState(null),
     [targets, setTargets] = useState([]);
   useEffect(() => {
     setSelected(null);
     setTargets([]);
+    setPromotion(null);
   }, [fen, disabled]);
   const game = new Chess(fen);
   function click(square) {
     if (disabled) return;
     const piece = game.get(square);
     if (selected && targets.includes(square)) {
+      const choices = game
+        .moves({ square: selected, verbose: true })
+        .filter((m) => m.to === square && m.promotion);
+      if (choices.length) {
+        setPromotion({
+          from: selected,
+          to: square,
+          color: game.turn(),
+          choices: choices.map((m) => m.promotion),
+        });
+        return;
+      }
       onMove(selected + square);
       setSelected(null);
       setTargets([]);
@@ -174,6 +195,33 @@ function Board({ fen, onMove, disabled, lastMove }) {
   }
   return (
     <div className="board-frame">
+      {promotion && (
+        <div
+          className="promotion-picker"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Choose a promotion"
+        >
+          <strong>Promote your pawn</strong>
+          {promotion.choices.map((piece) => (
+            <button
+              key={piece}
+              aria-label={`Promote to ${pieceNames[piece]}`}
+              onClick={() => {
+                onMove(promotion.from + promotion.to + piece);
+                setPromotion(null);
+              }}
+            >
+              <img
+                alt=""
+                src={`${import.meta.env.BASE_URL}pieces/${promotion.color}${piece.toUpperCase()}.png`}
+              />
+              {pieceNames[piece]}
+            </button>
+          ))}
+          <button onClick={() => setPromotion(null)}>Cancel</button>
+        </div>
+      )}
       <div className="ranks">
         {[8, 7, 6, 5, 4, 3, 2, 1].map((n) => (
           <span key={n}>{n}</span>
@@ -231,7 +279,11 @@ function App() {
     [messages, setMessages] = useState([]),
     [draft, setDraft] = useState(""),
     [delta, setDelta] = useState(null),
-    [storyStep, setStoryStep] = useState(0);
+    [storyStep, setStoryStep] = useState(0),
+    [exploration, setExploration] = useState(null),
+    [chatSnapshot, setChatSnapshot] = useState(null),
+    [copied, setCopied] = useState(false);
+  const chatDialogRef = useRef(null);
   const dialogRef = useRef(null);
   const composing = useRef(false);
   useEffect(() => {
@@ -274,6 +326,36 @@ function App() {
       dialogRef.current?.showModal();
     } else dialogRef.current?.close();
   }, [source]);
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(
+          `first-moves:exploration:${session.user.id}:${current}`,
+        ) || "null",
+      );
+      if (saved) replayLine(saved);
+      setExploration(saved);
+    } catch {
+      setExploration(null);
+    }
+  }, [session?.user?.id, current]);
+  useEffect(() => {
+    if (chatSnapshot) chatDialogRef.current?.showModal();
+    else chatDialogRef.current?.close();
+  }, [chatSnapshot]);
+  function saveExploration(line) {
+    setExploration(line);
+    try {
+      const key = `first-moves:exploration:${session.user.id}:${current}`;
+      if (line) localStorage.setItem(key, JSON.stringify(line));
+      else localStorage.removeItem(key);
+    } catch {
+      setError(
+        "This browser could not save your exploration. Your course progress is still stored in your account.",
+      );
+    }
+  }
   const lesson = course.find((l) => l.id === current),
     progress = state?.progress?.[current];
   const mode = progress?.mode || "practice",
@@ -297,7 +379,7 @@ function App() {
       });
       setState(r.state);
       setDelta(r.delta ? { value: r.delta, key: Date.now() } : null);
-      if (!["start", "reset"].includes(action))
+      if (!["start", "reset", "move"].includes(action))
         setMessages((m) => [...m, { role: "coach", text: r.feedback }]);
       return r;
     } catch (e) {
@@ -310,6 +392,7 @@ function App() {
   async function choose(id) {
     if (busy) return;
     setCurrent(id);
+    setExploration(null);
     setMessages([]);
     setView("puzzle");
     setStoryStep(0);
@@ -320,22 +403,86 @@ function App() {
   async function reset(nextMode = mode) {
     const r = await act("start", { mode: nextMode });
     if (r) {
+      saveExploration(null);
       setMessages([]);
       setView("puzzle");
       setStoryStep(0);
     }
   }
   async function move(uci) {
+    if (exploration) {
+      saveExploration(addMove(exploration, uci));
+      return;
+    }
+    const trial = addMove({ anchor: fen, moves: [] }, uci);
+    if (solved) {
+      saveExploration(trial);
+      return;
+    }
     const r = await act("move", { move: uci });
-    if (r?.state.progress[current]?.solved) setView("puzzle");
+    if (!r) return;
+    const next = r.state.progress[current];
+    if (!next.solved && next.fen === fen) {
+      saveExploration(trial);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "coach",
+          text: "Your move stays on the board. It did not meet this exercise’s specific goal, but that is not the same as saying it is a bad chess move. Play out a reply, explore both sides, or undo and try another idea.",
+        },
+      ]);
+    } else {
+      setMessages((m) => [...m, { role: "coach", text: r.feedback }]);
+      setView("puzzle");
+    }
   }
-  async function send(e) {
+  function explore() {
+    saveExploration({ anchor: fen, moves: [] });
+    setView("puzzle");
+  }
+  function undoExploration() {
+    if (!exploration?.moves.length) {
+      saveExploration(null);
+      return;
+    }
+    const moves = exploration.moves.slice(0, -1);
+    if (!moves.length && exploration.anchor === fen) saveExploration(null);
+    else saveExploration({ ...exploration, moves });
+  }
+  function discuss(question = draft) {
+    setCopied(false);
+    setChatSnapshot({
+      text: chatgptContext({
+        lesson,
+        fen: activeFen,
+        line: view === "story" ? null : exploration,
+        question,
+      }),
+      challenge:
+        mode === "challenge" &&
+        !progress?.awarded &&
+        !progress?.hinted &&
+        !solved,
+    });
+  }
+  async function copyContext() {
+    if (chatSnapshot.challenge) {
+      const r = await act("hint");
+      if (!r) return;
+      setChatSnapshot((s) => ({ ...s, challenge: false }));
+    }
+    try {
+      await navigator.clipboard.writeText(chatSnapshot.text);
+      setCopied(true);
+    } catch {
+      setError(
+        "Clipboard access was denied. Select the position text below and copy it manually.",
+      );
+    }
+  }
+  function send(e) {
     e.preventDefault();
-    const message = draft.trim();
-    if (!message || busy) return;
-    setDraft("");
-    setMessages((m) => [...m, { role: "learner", text: message }]);
-    await act("coach", { message });
+    if (!busy) discuss(draft);
   }
   async function logout() {
     await supabase.auth.signOut();
@@ -387,7 +534,13 @@ function App() {
     );
   const storyGame = new Chess();
   lesson.moves.slice(0, storyStep).forEach((m) => storyGame.move(m));
-  const activeFen = view === "story" ? storyGame.fen() : fen;
+  const exploredGame = exploration ? replayLine(exploration) : null;
+  const activeFen =
+    view === "story"
+      ? storyGame.fen()
+      : exploredGame
+        ? exploredGame.fen()
+        : fen;
   return (
     <div className="app">
       <header className="mobile-header">
@@ -533,7 +686,20 @@ function App() {
             <IconChessKnightFilled size={27} />
           </div>
           <div className="intro-bubble">
-            <p>{view === 'story' ? lesson.story : <><span className="story-context">{lesson.story.split('. ')[0]}. </span>{lesson.prompt}</>}</p>
+            <p>
+              {view === "story" ? (
+                lesson.story
+              ) : exploredGame ? (
+                `You’re exploring your own variation. ${boardStatus(exploredGame)}. Play a reply, undo, or discuss this position in ChatGPT.`
+              ) : (
+                <>
+                  <span className="story-context">
+                    {lesson.story.split(". ")[0]}.{" "}
+                  </span>
+                  {lesson.prompt}
+                </>
+              )}
+            </p>
             <button className="source-link" onClick={() => setSource(true)}>
               <IconBook2 size={16} />
               Winning Chess Openings · p. {lesson.pages}
@@ -598,17 +764,23 @@ function App() {
                 <Board
                   fen={activeFen}
                   onMove={move}
-                  disabled={busy || solved || view === "story"}
+                  disabled={
+                    busy ||
+                    view === "story" ||
+                    Boolean(exploredGame?.isGameOver())
+                  }
                 />
                 <div className="board-caption">
                   <strong>
                     {view === "story"
                       ? `Replay · ${storyStep} / ${lesson.moves.length} half-moves`
-                      : solved
-                        ? "Position solved"
-                        : new Chess(fen).turn() === "w"
-                          ? "White to move"
-                          : "Black to move"}
+                      : exploredGame
+                        ? boardStatus(exploredGame)
+                        : solved
+                          ? "Position solved"
+                          : new Chess(fen).turn() === "w"
+                            ? "White to move"
+                            : "Black to move"}
                   </strong>
                   {view === "story" ? (
                     <div className="replay-buttons">
@@ -636,7 +808,57 @@ function App() {
                 </div>
               </div>
               <div className="task-panel">
-                {view === "story" ? (
+                {exploration && view !== "story" ? (
+                  <div className="exploration-panel">
+                    <p className="eyebrow">EXPLORE BOTH SIDES</p>
+                    <h2>What happens next?</h2>
+                    <p>
+                      Your moves stay on the board. Play either side in turn and
+                      see how the position changes.
+                    </p>
+                    <div className="exploration-actions">
+                      <button onClick={undoExploration} disabled={busy}>
+                        Undo last move
+                      </button>
+                      <button
+                        onClick={() => saveExploration(null)}
+                        disabled={busy}
+                      >
+                        Return to exercise
+                      </button>
+                    </div>
+                    <button
+                      className="primary"
+                      onClick={() =>
+                        discuss(
+                          "Help me understand the consequences of the moves I tried.",
+                        )
+                      }
+                    >
+                      Discuss this board in ChatGPT
+                    </button>
+                    <p className="fine">
+                      Exploration moves are unscored. This variation is saved on
+                      this device; course progress syncs to your account.
+                    </p>
+                    {delta && (
+                      <p
+                        role="status"
+                        className={delta.value > 0 ? "gain" : "loss"}
+                      >
+                        This exercise attempt: {delta.value > 0 ? "+" : ""}
+                        {delta.value} XP. Further exploration is unscored.
+                      </p>
+                    )}
+                    <p
+                      className="variation-moves"
+                      aria-label="Exploration move history"
+                    >
+                      {exploredGame.history().join(" · ") ||
+                        "Choose any legal move to begin."}
+                    </p>
+                  </div>
+                ) : view === "story" ? (
                   <>
                     <p className="eyebrow">LEARN BY LOOKING</p>
                     <h2>Every move tells a story.</h2>
@@ -728,6 +950,13 @@ function App() {
                         </p>
                       </>
                     )}
+                    <button
+                      className="text-button explore-button"
+                      onClick={explore}
+                      disabled={busy}
+                    >
+                      Explore freely · no scoring
+                    </button>
                     {delta && (
                       <div
                         key={delta.key}
@@ -755,7 +984,9 @@ function App() {
               </span>
               <span className="saved">
                 <IconCheck size={15} />
-                Progress synced
+                {exploration
+                  ? "Variation saved on this device"
+                  : "Course progress synced"}
               </span>
             </div>
           </section>
@@ -778,42 +1009,95 @@ function App() {
           {busy && <p className="thinking">Checking your position…</p>}
         </section>
         <div className="composer-wrap">
-          <div className="quick-questions">
-            <button
-              disabled={busy}
-              onClick={() => act("coach", { message: "Explain the idea" })}
-            >
-              Explain the idea
-            </button>
-            <button
-              disabled={busy}
-              onClick={() => act("coach", { message: "How does XP work?" })}
-            >
-              How XP works
-            </button>
-            <span>Guided lesson coach</span>
+          <div className="chat-handoff-label">
+            <strong>Talk it through with ChatGPT</strong>
+            <span>Use your subscription · current board snapshot</span>
           </div>
           <form className="composer" onSubmit={send}>
             <input
-              aria-label="Ask your coach"
-              placeholder="Ask your coach or explain your move…"
-              maxLength={500}
+              aria-label="Question for ChatGPT"
+              placeholder="Why was my move risky? What could I try instead?"
+              maxLength={2000}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
             <button
               className="send"
-              disabled={busy || !draft.trim()}
-              aria-label="Send message"
+              disabled={busy}
+              aria-label="Discuss board in ChatGPT"
             >
               <IconSend size={22} />
             </button>
           </form>
+          <p className="fine handoff-note">
+            Copy the position into ChatGPT to ask freely. It is a snapshot, not
+            a live connection.
+          </p>
+          <button
+            className="text-button"
+            disabled={busy}
+            onClick={() => act("coach", { message: "Explain the idea" })}
+          >
+            Review the original lesson idea
+          </button>
         </div>
         <footer className="page-footer">
           Small steps. Thoughtful moves. Lasting progress.
         </footer>
       </main>
+      <dialog
+        ref={chatDialogRef}
+        className="chat-dialog"
+        onCancel={() => setChatSnapshot(null)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setChatSnapshot(null);
+        }}
+      >
+        <button
+          className="dialog-close icon-button"
+          aria-label="Close ChatGPT handoff"
+          onClick={() => setChatSnapshot(null)}
+        >
+          <IconX />
+        </button>
+        <p className="eyebrow">YOUR BOARD, YOUR CONVERSATION</p>
+        <h2>Continue in ChatGPT</h2>
+        <p>
+          Copy this position, open ChatGPT, and paste it into a conversation.
+          Sign in with the account that has your subscription.
+        </p>
+        {chatSnapshot?.challenge && (
+          <p className="notice">
+            Using outside coaching on this challenge counts as a hint: the solve
+            reward becomes +10 XP.
+          </p>
+        )}
+        <label className="snapshot-label">
+          Position and question
+          <textarea
+            aria-label="Board context for ChatGPT"
+            readOnly
+            value={chatSnapshot?.text || ""}
+          />
+        </label>
+        <div className="handoff-actions">
+          <button className="primary" onClick={copyContext} disabled={busy}>
+            {copied ? "Copied!" : "1. Copy position"}
+          </button>
+          <a
+            className="primary"
+            href="https://chatgpt.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            2. Open ChatGPT
+          </a>
+        </div>
+        <p className="fine">
+          No password, email or account token is included. If you change the
+          board, copy a new snapshot. ChatGPT replies stay in ChatGPT.
+        </p>
+      </dialog>
       <dialog
         ref={dialogRef}
         onCancel={() => setSource(false)}
