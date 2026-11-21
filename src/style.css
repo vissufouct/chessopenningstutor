@@ -1647,3 +1647,53 @@ dialog .fine {
     margin-bottom: 5px;
   }
 }
+.coach-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.coach-mode button {
+  border: 1px solid #dce2f3;
+  border-radius: 18px;
+  padding: 7px 11px;
+  font-size: 11px;
+  min-height: 34px;
+  color: #54648c;
+}
+.coach-mode button[aria-pressed="true"] {
+  color: #304ccd;
+  background: #e5eaff;
+  border-color: #aebdf8;
+}
+.coach-mode button:last-child {
+  margin-left: auto;
+}
+.message-body {
+  max-width: 86%;
+  min-width: 0;
+}
+.message .message-body p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.reply-context {
+  display: block;
+  font-size: 10px;
+  margin: 0 0 5px;
+  color: #697395;
+}
+.conversation {
+  scroll-behavior: smooth;
+}
+@media (max-width: 650px) {
+  .coach-mode button {
+    font-size: 10px;
+  }
+  .coach-mode button:last-child {
+    margin-left: 0;
+  }
+  .message-body {
+    max-width: 90%;
+  }
+}

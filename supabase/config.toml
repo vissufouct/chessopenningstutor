@@ -1,0 +1,4 @@
+[functions.chess-coach]
+# The handler validates the session with Supabase Auth and the learner allowlist.
+# This supports projects using the new JWT signing keys.
+verify_jwt = false

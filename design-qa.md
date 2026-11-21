@@ -54,3 +54,10 @@ Evidence inspected: `test/artifacts/walkthrough-desktop.png` at 1440 × 1024 and
 Checks passed: all 12 annotated lines are legal; the demonstration reaches Qxg4, kingside castling and Legall's checkmate as intended. Browser tests cover exact backward restoration, forward navigation, end/start boundaries, clickable move jumping, autoplay ending automatically, pause, mobile access, and unchanged XP/puzzle state. Existing exploration and authentication-contract tests pass. No new Supabase setup is required.
 
 final result: passed
+
+
+## In-app API coach revision
+
+Added conversational replies beneath the active board, recent conversation context, explicit AI/subscription selection, a new-conversation control, pending state and retryable errors that preserve the draft. Conversation scroll follows replies. Mobile screenshot `test/artifacts/ai-chat-mobile.png` inspected at 390px: controls wrap without horizontal overflow and board remains legible. Desktop evidence: `test/artifacts/ai-chat-desktop.png`. Screenshots use clearly marked test replies.
+
+Handler and migration tests validate authenticated allowlist access, actual legal board context, private credentials, role restrictions, durable quotas and sanitized failures. Chromium checks cover two follow-ups, exact exploration FEN, failed request/retry and subscription fallback alongside existing lessons and playback. OpenAI and Supabase HTTP are mocked; live activation requires the documented migration, Edge Function deployment and replacement secret.

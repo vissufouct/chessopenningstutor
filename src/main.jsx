@@ -32,7 +32,7 @@ import {
 } from "@tabler/icons-react";
 import course from "./course.json";
 import { walkthroughs, walkthroughFrames } from "./walkthroughs";
-import { supabase, configured, rpc } from "./client";
+import { supabase, configured, rpc, askCoach } from "./client";
 import "./style.css";
 const chapterNames = { 1: "Early Days", 2: "Basic Opening Principles" };
 const pieceNames = {
@@ -285,9 +285,16 @@ function App() {
     [storySpeed, setStorySpeed] = useState(3000),
     [exploration, setExploration] = useState(null),
     [chatSnapshot, setChatSnapshot] = useState(null),
-    [copied, setCopied] = useState(false);
+    [copied, setCopied] = useState(false),
+    [coachMode, setCoachMode] = useState("ai"),
+    [coachBusy, setCoachBusy] = useState(false);
   const chatDialogRef = useRef(null);
   const dialogRef = useRef(null);
+  const conversationRef = useRef(null);
+  useEffect(() => {
+    const node = conversationRef.current;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, [messages, busy]);
   const composing = useRef(false);
   const frames = useMemo(() => walkthroughFrames(current), [current]);
   const walkthrough = walkthroughs[current];
@@ -518,9 +525,65 @@ function App() {
       );
     }
   }
-  function send(e) {
+  async function send(e) {
     e.preventDefault();
-    if (!busy) discuss(draft);
+    if (coachMode === "subscription") {
+      if (!busy) discuss(draft);
+      return;
+    }
+    const question = draft.trim();
+    if (!question || composing.current) return;
+    composing.current = true;
+    setBusy(true);
+    setCoachBusy(true);
+    setStoryPlaying(false);
+    setError("");
+    const requestFen = activeFen;
+    const previous = messages
+      .filter((m) => m.aiThread)
+      .slice(-8)
+      .map((m) => ({
+        role: m.role === "learner" ? "user" : "assistant",
+        text: m.text.slice(0, 1500),
+        fen: m.positionFen,
+      }));
+    setMessages((m) => [
+      ...m,
+      {
+        role: "learner",
+        text: question,
+        aiThread: true,
+        positionFen: requestFen,
+      },
+    ]);
+    setDraft("");
+    try {
+      const response = await askCoach({
+        lessonId: current,
+        fen: requestFen,
+        line: view === "story" ? null : exploration,
+        message: question,
+        history: previous,
+      });
+      if (response.state) setState(response.state);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "coach",
+          text: response.reply,
+          aiThread: true,
+          positionFen: requestFen,
+        },
+      ]);
+    } catch (e) {
+      setError(e.message);
+      setDraft(question);
+      setMessages((m) => m.slice(0, -1));
+    } finally {
+      composing.current = false;
+      setBusy(false);
+      setCoachBusy(false);
+    }
   }
   async function logout() {
     await supabase.auth.signOut();
@@ -1150,6 +1213,7 @@ function App() {
           </section>
         )}
         <section
+          ref={conversationRef}
           className="conversation"
           aria-label="Conversation with your coach"
           aria-live="polite"
@@ -1161,19 +1225,69 @@ function App() {
                   <IconChessKnightFilled size={20} />
                 </div>
               )}
-              <p>{m.text}</p>
+              <div className="message-body">
+                {m.aiThread && m.role === "coach" && (
+                  <small className="reply-context" title={m.positionFen}>
+                    AI coach · based on the position you sent
+                  </small>
+                )}
+                <p>{m.text}</p>
+              </div>
             </div>
           ))}
-          {busy && <p className="thinking">Checking your position…</p>}
+          {busy && (
+            <p className="thinking">
+              {coachBusy
+                ? "Your coach is thinking…"
+                : "Checking your position…"}
+            </p>
+          )}
         </section>
         <div className="composer-wrap">
           <div className="chat-handoff-label">
-            <strong>Talk it through with ChatGPT</strong>
-            <span>Use your subscription · current board snapshot</span>
+            <strong>
+              {coachMode === "ai"
+                ? "Talk to your chess coach"
+                : "Talk it through with ChatGPT"}
+            </strong>
+            <span>
+              {coachMode === "ai"
+                ? "Current board + conversation context"
+                : "Use your subscription · current board snapshot"}
+            </span>
+          </div>
+          <div className="coach-mode" aria-label="Coach connection">
+            <button
+              type="button"
+              disabled={busy}
+              aria-pressed={coachMode === "ai"}
+              onClick={() => setCoachMode("ai")}
+            >
+              In-app AI coach
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              aria-pressed={coachMode === "subscription"}
+              onClick={() => setCoachMode("subscription")}
+            >
+              Use ChatGPT subscription
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setMessages((m) => m.filter((x) => !x.aiThread))}
+            >
+              New conversation
+            </button>
           </div>
           <form className="composer" onSubmit={send}>
             <input
-              aria-label="Question for ChatGPT"
+              aria-label={
+                coachMode === "ai"
+                  ? "Message to AI coach"
+                  : "Question for ChatGPT"
+              }
               placeholder="Why was my move risky? What could I try instead?"
               maxLength={2000}
               value={draft}
@@ -1181,16 +1295,31 @@ function App() {
             />
             <button
               className="send"
-              disabled={busy}
-              aria-label="Discuss board in ChatGPT"
+              disabled={busy || (coachMode === "ai" && !draft.trim())}
+              aria-label={
+                coachMode === "ai"
+                  ? "Send to AI coach"
+                  : "Discuss board in ChatGPT"
+              }
             >
               <IconSend size={22} />
             </button>
           </form>
           <p className="fine handoff-note">
-            Copy the position into ChatGPT to ask freely. It is a snapshot, not
-            a live connection.
+            {coachMode === "ai"
+              ? "AI replies can be mistaken; check suggested moves on the board. API usage is separate from your ChatGPT subscription."
+              : "Copy the position into ChatGPT to ask freely. It is a snapshot, not a live connection."}
           </p>
+          {coachMode === "ai" &&
+            mode === "challenge" &&
+            !progress?.hinted &&
+            !progress?.awarded &&
+            !solved && (
+              <p className="fine">
+                An AI reply on this challenge counts as a hint: +10 XP for
+                solving.
+              </p>
+            )}
           <button
             className="text-button"
             disabled={busy}

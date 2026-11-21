@@ -10,6 +10,8 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const errors = [];
+const aiRequests = [];
+let failNextCoach = false;
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1024 },
   reducedMotion: "reduce",
@@ -54,7 +56,21 @@ await context.route(
         };
       else if (url.pathname === "/auth/v1/user") body = user;
       else if (url.pathname === "/auth/v1/logout") body = {};
-      else if (url.pathname.endsWith("/tutor_state")) body = await state(db);
+      else if (url.pathname.endsWith("/functions/v1/chess-coach")) {
+        const payload = req.postDataJSON();
+        aiRequests.push(payload);
+        if (failNextCoach) {
+          status = 503;
+          body = { message: "The AI coach is temporarily unavailable." };
+          failNextCoach = false;
+        } else
+          body = {
+            reply: `Test coach reply ${aiRequests.length}: I am looking at the position you sent.`,
+            fen: payload.fen,
+            state: null,
+            hintRecorded: false,
+          };
+      } else if (url.pathname.endsWith("/tutor_state")) body = await state(db);
       else if (url.pathname.endsWith("/tutor_action")) {
         const p = req.postDataJSON();
         body = await action(db, p.p_lesson, p.p_action, p.p_payload);
@@ -208,6 +224,69 @@ try {
   await page.getByText("White to move · in check", { exact: true }).waitFor();
   await page.reload();
   await page.getByRole("heading", { name: "What happens next?" }).waitFor();
+  await page.getByLabel("Message to AI coach").fill("Why is my king in check?");
+  await page
+    .getByRole("button", { name: "Send to AI coach", exact: true })
+    .click();
+  await page
+    .getByText("Test coach reply 1: I am looking at the position you sent.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.ok(aiRequests[0].line.moves.includes("f8b4"));
+  assert.notEqual(
+    aiRequests[0].fen,
+    (await state(db)).progress["look-before-copy"].fen,
+  );
+  await page
+    .getByLabel("Message to AI coach")
+    .fill("Can I block it with a knight?");
+  await page
+    .getByRole("button", { name: "Send to AI coach", exact: true })
+    .click();
+  await page
+    .getByText("Test coach reply 2: I am looking at the position you sent.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(aiRequests[1].history.length, 2);
+  assert.equal(aiRequests[1].history[0].role, "user");
+  assert.equal(aiRequests[1].history[1].role, "assistant");
+  failNextCoach = true;
+  await page.getByLabel("Message to AI coach").fill("What about a bishop?");
+  await page
+    .getByRole("button", { name: "Send to AI coach", exact: true })
+    .click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "temporarily unavailable" })
+    .waitFor();
+  assert.equal(
+    await page.getByLabel("Message to AI coach").inputValue(),
+    "What about a bishop?",
+  );
+  await page
+    .getByRole("button", { name: "Send to AI coach", exact: true })
+    .click();
+  await page
+    .getByText("Test coach reply 4: I am looking at the position you sent.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(aiRequests[3].history.length, 4);
+  await page.screenshot({
+    path: "test/artifacts/ai-chat-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: "test/artifacts/ai-chat-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1024 });
+  await page
+    .getByRole("button", { name: "Use ChatGPT subscription", exact: true })
+    .click();
   await page.getByLabel("Question for ChatGPT").fill("What did I overlook?");
   await page
     .getByRole("button", { name: "Discuss board in ChatGPT", exact: true })
@@ -319,7 +398,7 @@ try {
   await page.getByRole("button", { name: "Enter your classroom" }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser checks passed: login, legal board interaction, challenge rewards, reflection, persisted reload, replay protection, source dialog, annotated walkthroughs, backwards/forwards, autoplay/pause, move jumping, persistent exploration, undo, underpromotion, ChatGPT snapshot handoff, mobile navigation, hints, penalties, responsive widths, logout; no page errors. Supabase HTTP was simulated; the actual migration ran on local PGlite Postgres.",
+    "Browser checks passed: in-app AI replies, follow-up context, request failure/retry, login, legal board interaction, challenge rewards, reflection, persisted reload, replay protection, source dialog, annotated walkthroughs, backwards/forwards, autoplay/pause, move jumping, persistent exploration, undo, underpromotion, ChatGPT snapshot handoff, mobile navigation, hints, penalties, responsive widths, logout; no page errors. Supabase HTTP was simulated; the actual migration ran on local PGlite Postgres.",
   );
 } finally {
   await browser.close();
