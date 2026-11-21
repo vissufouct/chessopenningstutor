@@ -116,10 +116,85 @@ try {
   await page.getByRole("button", { name: "View source", exact: false }).click();
   await page.locator("dialog[open]").waitFor();
   await page.getByRole("button", { name: "Close source" }).click();
-  await page.getByRole("button", { name: "Watch the story" }).click();
+  await page.getByRole("button", { name: "Lesson summary" }).click();
   await page.getByRole("button", { name: "Next move", exact: true }).click();
-  await page.getByText("Replay · 1 / 6 half-moves").waitFor();
+  await page.getByText("Step 1 of 7 · 1. d3").waitFor();
+  await page
+    .locator(".move-reason")
+    .filter({ hasText: "White opens the diagonal for the c1-bishop" })
+    .waitFor();
+  assert.match(
+    await page.locator('[data-square="d3"]').getAttribute("aria-label"),
+    /White pawn/,
+  );
+  await page
+    .getByRole("button", { name: "Previous move", exact: true })
+    .click();
+  assert.match(
+    await page.locator('[data-square="d2"]').getAttribute("aria-label"),
+    /White pawn/,
+  );
+  await page
+    .getByRole("button", { name: "Last position", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "4. Qxg4 · White", exact: true })
+    .waitFor();
+  assert.match(
+    await page.locator('[data-square="g4"]').getAttribute("aria-label"),
+    /White queen/,
+  );
+  await page
+    .getByRole("button", { name: "Previous move", exact: true })
+    .click();
+  await page.getByLabel("Autoplay pace").selectOption("1500");
+  await page
+    .getByRole("button", { name: "Play walkthrough", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "4. Qxg4 · White", exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Play walkthrough", exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "1… d5", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "1… d5 · Black", exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Play walkthrough", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Pause walkthrough", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "1… d5 · Black", exact: true })
+    .waitFor();
+  await page.screenshot({
+    path: "test/artifacts/walkthrough-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page
+    .getByRole("button", { name: "Lesson summary", exact: true })
+    .waitFor({ state: "visible" });
+  await page.locator(".phone-move-note").waitFor({ state: "visible" });
+  await page.screenshot({
+    path: "test/artifacts/walkthrough-mobile.png",
+    fullPage: true,
+  });
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  await page.setViewportSize({ width: 1440, height: 1024 });
+  assert.equal((await state(db)).xp, 20);
   await page.getByRole("button", { name: "Try the position" }).click();
+  assert.match(
+    await page.locator('[data-square="g4"]').getAttribute("aria-label"),
+    /Black bishop/,
+  );
   // A missed legal move remains on the board and can be followed by a reply.
   await page.locator('[data-square="d4"]').click();
   await page.locator('[data-square="e5"]').click();
@@ -184,12 +259,18 @@ try {
   await page
     .getByRole("button", { name: "Return to exercise", exact: true })
     .click();
-  await page.getByRole('button',{name:'Discuss board in ChatGPT',exact:true}).click();
-  await page.getByText('Using outside coaching on this challenge counts as a hint:',{exact:false}).waitFor();
-  await page.getByRole('button',{name:'1. Copy position'}).click();
-  await page.getByRole('button',{name:'Copied!',exact:true}).waitFor();
-  assert.ok((await state(db)).progress['central-start'].hinted);
-  await page.getByRole('button',{name:'Close ChatGPT handoff'}).click();
+  await page
+    .getByRole("button", { name: "Discuss board in ChatGPT", exact: true })
+    .click();
+  await page
+    .getByText("Using outside coaching on this challenge counts as a hint:", {
+      exact: false,
+    })
+    .waitFor();
+  await page.getByRole("button", { name: "1. Copy position" }).click();
+  await page.getByRole("button", { name: "Copied!", exact: true }).waitFor();
+  assert.ok((await state(db)).progress["central-start"].hinted);
+  await page.getByRole("button", { name: "Close ChatGPT handoff" }).click();
   await page
     .getByText("Choose the d-pawn or e-pawn.", { exact: true })
     .waitFor();
@@ -238,7 +319,7 @@ try {
   await page.getByRole("button", { name: "Enter your classroom" }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser checks passed: login, legal board interaction, challenge rewards, reflection, persisted reload, replay protection, source dialog, story replay, persistent exploration, undo, underpromotion, ChatGPT snapshot handoff, mobile navigation, hints, penalties, responsive widths, logout; no page errors. Supabase HTTP was simulated; the actual migration ran on local PGlite Postgres.",
+    "Browser checks passed: login, legal board interaction, challenge rewards, reflection, persisted reload, replay protection, source dialog, annotated walkthroughs, backwards/forwards, autoplay/pause, move jumping, persistent exploration, undo, underpromotion, ChatGPT snapshot handoff, mobile navigation, hints, penalties, responsive widths, logout; no page errors. Supabase HTTP was simulated; the actual migration ran on local PGlite Postgres.",
   );
 } finally {
   await browser.close();

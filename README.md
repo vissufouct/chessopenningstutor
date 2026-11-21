@@ -75,3 +75,11 @@ Any legal off-target move stays on the board. Play both sides, undo one move, or
 Type a question in **Talk it through with ChatGPT**, open the handoff, copy the context, then open ChatGPT and paste it. The context includes the current FEN, legal moves, piece placement, lesson context, and the complete exploration variation. It does not include the app login or account tokens. Copy an updated snapshot whenever the board changes. Copying a challenge snapshot through the copy button records hint use before handing off.
 
 Your ChatGPT subscription does not provide API access to this website. Keeping this conversation in ChatGPT avoids adding a separately billed model API. The app does not read ChatGPT replies, control the ChatGPT account, or automatically apply suggested moves.
+
+## Annotated lesson walkthroughs
+
+Choose **Lesson summary** on any lesson. Read the summary, then use **Previous/Next**, **Start/End**, or the clickable move list. **Play/Pause** offers 1.5-, 3-, or 5-second pacing. Manual navigation pauses autoplay; changing lessons, opening the source/ChatGPT dialog, or hiding the tab pauses it too. The start and destination squares of the explained move are highlighted. On phones, the move explanation appears above the board so it can be read while watching.
+
+All twelve examples have an original explanation for every White and Black move, a takeaway, and source labels distinguishing book examples from original demonstrations. Examples include the teaching move and, for Legall's Mate, the complete mating sequence. Playback is unscored and does not modify saved exercise state. Use **Try the position** to return to the puzzle, or **Explore from this position** to branch into a free variation.
+
+Walkthrough content lives in `src/walkthroughs.js`; it does not change the Supabase schema. Tests validate every move and resulting position.

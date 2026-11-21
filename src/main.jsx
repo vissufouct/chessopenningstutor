@@ -2,7 +2,7 @@ import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/600.css";
 import "@fontsource/dm-sans/700.css";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { Chess } from "chess.js";
 import {
@@ -31,6 +31,7 @@ import {
   IconCircleCheckFilled,
 } from "@tabler/icons-react";
 import course from "./course.json";
+import { walkthroughs, walkthroughFrames } from "./walkthroughs";
 import { supabase, configured, rpc } from "./client";
 import "./style.css";
 const chapterNames = { 1: "Early Days", 2: "Basic Opening Principles" };
@@ -280,12 +281,46 @@ function App() {
     [draft, setDraft] = useState(""),
     [delta, setDelta] = useState(null),
     [storyStep, setStoryStep] = useState(0),
+    [storyPlaying, setStoryPlaying] = useState(false),
+    [storySpeed, setStorySpeed] = useState(3000),
     [exploration, setExploration] = useState(null),
     [chatSnapshot, setChatSnapshot] = useState(null),
     [copied, setCopied] = useState(false);
   const chatDialogRef = useRef(null);
   const dialogRef = useRef(null);
   const composing = useRef(false);
+  const frames = useMemo(() => walkthroughFrames(current), [current]);
+  const walkthrough = walkthroughs[current];
+  useEffect(() => {
+    if (source || chatSnapshot) setStoryPlaying(false);
+  }, [source, chatSnapshot]);
+  const frame = frames[Math.min(storyStep, frames.length - 1)];
+  function goToStoryStep(n) {
+    setStoryPlaying(false);
+    setStoryStep(Math.max(0, Math.min(n, frames.length - 1)));
+  }
+  useEffect(() => {
+    setStoryPlaying(false);
+  }, [current, view]);
+  useEffect(() => {
+    if (!storyPlaying || view !== "story" || !session) return;
+    if (storyStep >= frames.length - 1) {
+      setStoryPlaying(false);
+      return;
+    }
+    const timer = setTimeout(
+      () => setStoryStep((i) => Math.min(i + 1, frames.length - 1)),
+      storySpeed,
+    );
+    return () => clearTimeout(timer);
+  }, [storyPlaying, view, session, storyStep, storySpeed, frames.length]);
+  useEffect(() => {
+    const pause = () => {
+      if (document.hidden) setStoryPlaying(false);
+    };
+    document.addEventListener("visibilitychange", pause);
+    return () => document.removeEventListener("visibilitychange", pause);
+  }, []);
   useEffect(() => {
     if (!supabase) {
       setAuthReady(true);
@@ -396,6 +431,7 @@ function App() {
     setMessages([]);
     setView("puzzle");
     setStoryStep(0);
+    setStoryPlaying(false);
     setNav(false);
     setDelta(null);
     setError("");
@@ -407,6 +443,7 @@ function App() {
       setMessages([]);
       setView("puzzle");
       setStoryStep(0);
+      setStoryPlaying(false);
     }
   }
   async function move(uci) {
@@ -450,6 +487,7 @@ function App() {
     else saveExploration({ ...exploration, moves });
   }
   function discuss(question = draft) {
+    setStoryPlaying(false);
     setCopied(false);
     setChatSnapshot({
       text: chatgptContext({
@@ -532,15 +570,10 @@ function App() {
         )}
       </main>
     );
-  const storyGame = new Chess();
-  lesson.moves.slice(0, storyStep).forEach((m) => storyGame.move(m));
+
   const exploredGame = exploration ? replayLine(exploration) : null;
   const activeFen =
-    view === "story"
-      ? storyGame.fen()
-      : exploredGame
-        ? exploredGame.fen()
-        : fen;
+    view === "story" ? frame.fen : exploredGame ? exploredGame.fen() : fen;
   return (
     <div className="app">
       <header className="mobile-header">
@@ -659,11 +692,12 @@ function App() {
             onClick={() => {
               setView("story");
               setStoryStep(0);
+              setStoryPlaying(false);
             }}
             className={view === "story" ? "current" : ""}
           >
             <IconPlayerPlay size={16} />
-            Watch the story
+            Lesson summary
           </button>
           <span>—</span>
           <button
@@ -688,7 +722,17 @@ function App() {
           <div className="intro-bubble">
             <p>
               {view === "story" ? (
-                lesson.story
+                <>
+                  <span className="story-overview">{lesson.story}</span>
+                  {storyStep > 0 && (
+                    <span className="phone-move-note">
+                      <strong>
+                        {frame.label} · {frame.side}
+                      </strong>
+                      {frame.explanation}
+                    </span>
+                  )}
+                </>
               ) : exploredGame ? (
                 `You’re exploring your own variation. ${boardStatus(exploredGame)}. Play a reply, undo, or discuss this position in ChatGPT.`
               ) : (
@@ -763,6 +807,7 @@ function App() {
               <div className="board-column">
                 <Board
                   fen={activeFen}
+                  lastMove={view === "story" ? frame.lastMove : null}
                   onMove={move}
                   disabled={
                     busy ||
@@ -773,7 +818,7 @@ function App() {
                 <div className="board-caption">
                   <strong>
                     {view === "story"
-                      ? `Replay · ${storyStep} / ${lesson.moves.length} half-moves`
+                      ? `Step ${storyStep} of ${frames.length - 1} · ${frame.label}`
                       : exploredGame
                         ? boardStatus(exploredGame)
                         : solved
@@ -783,22 +828,10 @@ function App() {
                             : "Black to move"}
                   </strong>
                   {view === "story" ? (
-                    <div className="replay-buttons">
-                      <button
-                        aria-label="Previous move"
-                        disabled={!storyStep}
-                        onClick={() => setStoryStep((i) => i - 1)}
-                      >
-                        <IconChevronLeft />
-                      </button>
-                      <button
-                        aria-label="Next move"
-                        disabled={storyStep === lesson.moves.length}
-                        onClick={() => setStoryStep((i) => i + 1)}
-                      >
-                        <IconChevronRight />
-                      </button>
-                    </div>
+                    <span className="walkthrough-turn">
+                      {new Chess(frame.fen).turn() === "w" ? "White" : "Black"}{" "}
+                      to move
+                    </span>
                   ) : (
                     <button onClick={() => reset()} disabled={busy}>
                       <IconRefresh size={19} />
@@ -806,6 +839,83 @@ function App() {
                     </button>
                   )}
                 </div>
+                {view === "story" && (
+                  <div
+                    className="walkthrough-controls"
+                    role="group"
+                    aria-label="Walkthrough controls"
+                    onKeyDown={(e) => {
+                      if (e.target.tagName === "SELECT") return;
+                      if (e.key === "ArrowRight") {
+                        e.preventDefault();
+                        goToStoryStep(storyStep + 1);
+                      }
+                      if (e.key === "ArrowLeft") {
+                        e.preventDefault();
+                        goToStoryStep(storyStep - 1);
+                      }
+                    }}
+                  >
+                    <div className="walkthrough-buttons">
+                      <button
+                        aria-label="First position"
+                        title="First position"
+                        disabled={!storyStep}
+                        onClick={() => goToStoryStep(0)}
+                      >
+                        Start
+                      </button>
+                      <button
+                        aria-label="Previous move"
+                        disabled={!storyStep}
+                        onClick={() => goToStoryStep(storyStep - 1)}
+                      >
+                        <IconChevronLeft />
+                      </button>
+                      <button
+                        className="walkthrough-play"
+                        aria-label={
+                          storyPlaying
+                            ? "Pause walkthrough"
+                            : "Play walkthrough"
+                        }
+                        onClick={() => {
+                          if (storyStep === frames.length - 1) setStoryStep(0);
+                          setStoryPlaying((p) => !p);
+                        }}
+                      >
+                        {storyPlaying ? "Pause" : "Play"}
+                      </button>
+                      <button
+                        aria-label="Next move"
+                        disabled={storyStep === frames.length - 1}
+                        onClick={() => goToStoryStep(storyStep + 1)}
+                      >
+                        <IconChevronRight />
+                      </button>
+                      <button
+                        aria-label="Last position"
+                        title="Last position"
+                        disabled={storyStep === frames.length - 1}
+                        onClick={() => goToStoryStep(frames.length - 1)}
+                      >
+                        End
+                      </button>
+                    </div>
+                    <label className="playback-speed">
+                      Autoplay pace{" "}
+                      <select
+                        aria-label="Autoplay pace"
+                        value={storySpeed}
+                        onChange={(e) => setStorySpeed(Number(e.target.value))}
+                      >
+                        <option value={1500}>Quick · 1.5 seconds</option>
+                        <option value={3000}>Steady · 3 seconds</option>
+                        <option value={5000}>Slow · 5 seconds</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
               </div>
               <div className="task-panel">
                 {exploration && view !== "story" ? (
@@ -859,12 +969,30 @@ function App() {
                     </p>
                   </div>
                 ) : view === "story" ? (
-                  <>
-                    <p className="eyebrow">LEARN BY LOOKING</p>
-                    <h2>Every move tells a story.</h2>
-                    <p>
-                      Use the arrows to replay the lead-up. Notice which lines
-                      open and which pieces become targets.
+                  <div
+                    className="move-explanation"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <p className="eyebrow">
+                      {storyStep ? "UNDERSTAND THE MOVE" : "LESSON SUMMARY"}
+                    </p>
+                    <h2>
+                      {storyStep
+                        ? `${frame.label} · ${frame.side}`
+                        : "The idea to remember"}
+                    </h2>
+                    <p className="move-reason">{frame.explanation}</p>
+                    {storyStep > 0 && (
+                      <div className="lesson-takeaway">
+                        <strong>Key idea</strong>
+                        <p>{walkthrough.takeaway}</p>
+                      </div>
+                    )}
+                    <p className="walkthrough-source">{walkthrough.origin}</p>
+                    <p className="fine">
+                      This demonstration includes the solution. Watch at your
+                      own pace; playback does not change XP.
                     </p>
                     <button
                       className="primary"
@@ -873,7 +1001,16 @@ function App() {
                       Try the position
                       <IconArrowRight size={18} />
                     </button>
-                  </>
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        saveExploration({ anchor: frame.fen, moves: [] });
+                        setView("puzzle");
+                      }}
+                    >
+                      Explore from this position
+                    </button>
+                  </div>
                 ) : (
                   <>
                     <p className="eyebrow">
@@ -971,7 +1108,26 @@ function App() {
                 )}
               </div>
             </div>
-            <div className="activity-footer">
+            {view === "story" && (
+              <div
+                className="walkthrough-strip"
+                aria-label="Moves in the walkthrough"
+              >
+                {frames.map((f, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goToStoryStep(i)}
+                    aria-current={i === storyStep ? "step" : undefined}
+                    className={i === storyStep ? "active" : ""}
+                  >
+                    {i ? f.label : "Start"}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div
+              className={`activity-footer ${view === "story" ? "walkthrough-footer" : ""}`}
+            >
               <span>
                 {lesson.moves.length
                   ? lesson.moves.map((m, i) => (
@@ -984,9 +1140,11 @@ function App() {
               </span>
               <span className="saved">
                 <IconCheck size={15} />
-                {exploration
-                  ? "Variation saved on this device"
-                  : "Course progress synced"}
+                {view === "story"
+                  ? "Unscored walkthrough"
+                  : exploration
+                    ? "Variation saved on this device"
+                    : "Course progress synced"}
               </span>
             </div>
           </section>
@@ -1134,6 +1292,7 @@ function App() {
             setSource(false);
             setView("story");
             setStoryStep(0);
+            setStoryPlaying(false);
           }}
         >
           Replay the example

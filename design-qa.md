@@ -44,3 +44,13 @@ Evidence: `test/artifacts/exploration-desktop.png` (1440px desktop) and `test/ar
 Validation: browser checks passed for retained mistakes, legal replies, reload recovery, undo, return, ChatGPT snapshot contents, clipboard copy, challenge hint accounting, underpromotion and logout. Core SQL and all lesson tests continue to pass. Five test cases pass; one case contains the complete course/database suite. Existing Supabase schema is unchanged.
 
 final result: passed
+
+## Annotated walkthrough update
+
+User-requested lesson summaries and move explanations are added within the existing board layout. Each lesson has start/back/play/next/end controls, speed selection, a clickable move list, highlighted last-move squares, a summary/takeaway, and original explanations for both sides. Mobile lesson-stage controls are now visible; the current move explanation appears above the board on a phone.
+
+Evidence inspected: `test/artifacts/walkthrough-desktop.png` at 1440 × 1024 and `test/artifacts/walkthrough-mobile.png` at 390 × 844 (full-page captures). Natural vertical scrolling accommodates the lesson material; there is no horizontal overflow. Desktop instructions sit beside the board; on mobile the short move explanation is repeated above it for simultaneous reading and watching. Controls remain labelled and reachable.
+
+Checks passed: all 12 annotated lines are legal; the demonstration reaches Qxg4, kingside castling and Legall's checkmate as intended. Browser tests cover exact backward restoration, forward navigation, end/start boundaries, clickable move jumping, autoplay ending automatically, pause, mobile access, and unchanged XP/puzzle state. Existing exploration and authentication-contract tests pass. No new Supabase setup is required.
+
+final result: passed
