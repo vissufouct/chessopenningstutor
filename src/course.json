@@ -1,0 +1,325 @@
+[
+  {
+    "id": "look-before-copy",
+    "chapter": 1,
+    "title": "Look before you copy",
+    "topic": "Copying the Opponent",
+    "pages": "3–4",
+    "story": "Seirawan recalls copying his opponent instead of examining the position. Replaying the game reveals a free bishop that he missed. Before following a plan, check what the last move changed.",
+    "moves": [
+      "d3",
+      "d5",
+      "d4",
+      "e5",
+      "e4",
+      "Bg4"
+    ],
+    "fen": "rn1qkbnr/ppp2ppp/8/3pp3/3PP1b1/8/PPP2PPP/RNBQKBNR w KQkq - 1 4",
+    "prompt": "White to move. Win the unprotected bishop.",
+    "hints": [
+      "Look for a capture before copying a move.",
+      "The queen has an open diagonal from d1."
+    ],
+    "question": "What should you do after your opponent moves?",
+    "choices": [
+      "Check threats and available captures",
+      "Copy the move immediately",
+      "Always move your queen"
+    ]
+  },
+  {
+    "id": "check-not-mate",
+    "chapter": 1,
+    "title": "Check is not checkmate",
+    "topic": "Copying the Opponent",
+    "pages": "4",
+    "story": "The same childhood game ended with a mistaken claim of checkmate. The king was in check, but several legal blocks were available. An uncomfortable position is not automatically a lost game.",
+    "moves": [
+      "d3",
+      "d5",
+      "d4",
+      "e5",
+      "e4",
+      "Bg4",
+      "dxe5",
+      "Bb4+"
+    ],
+    "fen": "rn1qk1nr/ppp2ppp/8/3pP3/1b2P1b1/8/PPP2PPP/RNBQKBNR w KQkq - 1 5",
+    "prompt": "White is in check. Block the bishop’s attack.",
+    "hints": [
+      "Check the diagonal from b4 to e1.",
+      "A piece or pawn can block on c3 or d2."
+    ],
+    "question": "When is a checked king checkmated?",
+    "choices": [
+      "Whenever it cannot move itself",
+      "When no legal move removes the check",
+      "When the queen is threatened"
+    ]
+  },
+  {
+    "id": "cannon-fire",
+    "chapter": 1,
+    "title": "Keep the rooks safe",
+    "topic": "Cannon Fire",
+    "pages": "5–7",
+    "story": "Seirawan imagined his rooks as cannons and brought them out before his other pieces. A bishop captured a rook. Even after a mistake, examine the position for the best recovery.",
+    "moves": [
+      "h4",
+      "d5",
+      "Rh3",
+      "Bxh3"
+    ],
+    "fen": "rn1qkbnr/ppp1pppp/8/3p4/7P/7b/PPPPPPP1/RNBQKBN1 w Qkq - 0 3",
+    "prompt": "White has lost a rook. Capture the bishop in return.",
+    "hints": [
+      "Do not ignore a capture just because your plan went wrong.",
+      "The knight on g1 can recapture."
+    ],
+    "question": "What is the useful response when your plan fails?",
+    "choices": [
+      "Continue it regardless",
+      "Stop checking threats",
+      "Reassess and limit the damage"
+    ]
+  },
+  {
+    "id": "queen-tempo",
+    "chapter": 1,
+    "title": "Develop with a threat",
+    "topic": "Queen Raid",
+    "pages": "13",
+    "story": "After an early queen capture in the Scandinavian Defense, White can develop a knight while attacking the queen. This gains time for development. Early queen moves are not always wrong; their cost depends on the position.",
+    "moves": [
+      "e4",
+      "d5",
+      "exd5",
+      "Qxd5"
+    ],
+    "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3",
+    "prompt": "Develop a knight and attack the black queen.",
+    "hints": [
+      "Can one move do two useful jobs?",
+      "The knight on b1 can reach c3."
+    ],
+    "question": "What does developing with tempo mean here?",
+    "choices": [
+      "Developing while making a threat",
+      "Moving as fast as possible",
+      "Always giving check"
+    ]
+  },
+  {
+    "id": "stop-raid",
+    "chapter": 1,
+    "title": "Meet the queen raid",
+    "topic": "Destroying the Queen Raid",
+    "pages": "16",
+    "story": "A queen and bishop aimed at f7 can threaten a quick mate. In the book’s example, Black first defends the e5-pawn, then blocks the mating threat while attacking the queen.",
+    "moves": [
+      "e4",
+      "e5",
+      "Qh5",
+      "Nc6",
+      "Bc4"
+    ],
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3",
+    "prompt": "Black to move. Block the queen’s path to f7 and attack her.",
+    "hints": [
+      "The black knight already protects e5.",
+      "A pawn can move from g7 to g6."
+    ],
+    "question": "Why does the position matter before pushing the g-pawn?",
+    "choices": [
+      "Pawn moves always win time",
+      "Other threats, including e5, must be covered",
+      "Queens cannot capture pawns"
+    ]
+  },
+  {
+    "id": "coordinate-defence",
+    "chapter": 1,
+    "title": "Bring another defender",
+    "topic": "Destroying the Queen Raid",
+    "pages": "16–20",
+    "story": "The raiding queen renews the threat from f3. Black calmly develops another minor piece. Coordinated development can make a queen attack lose time.",
+    "moves": [
+      "e4",
+      "e5",
+      "Qh5",
+      "Nc6",
+      "Bc4",
+      "g6",
+      "Qf3"
+    ],
+    "fen": "r1bqkbnr/pppp1p1p/2n3p1/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR b KQkq - 1 4",
+    "prompt": "Black to move. Develop a knight to block the attack on f7.",
+    "hints": [
+      "Find the line between f3 and f7.",
+      "The g8-knight can move to f6."
+    ],
+    "question": "What makes this defence useful?",
+    "choices": [
+      "It develops a piece and answers the threat",
+      "It ignores the opponent",
+      "It wins the queen immediately"
+    ]
+  },
+  {
+    "id": "central-start",
+    "chapter": 2,
+    "title": "Make room in the centre",
+    "topic": "Basic Opening Principles",
+    "pages": "25–27",
+    "story": "Chapter 2 puts pawns and minor pieces at the heart of opening play. A central pawn move can claim space and open lines for development. The four central squares are d4, e4, d5 and e5.",
+    "moves": [],
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "prompt": "White to move. Advance a central pawn two squares.",
+    "hints": [
+      "Choose the d-pawn or e-pawn.",
+      "Either d4 or e4 meets this lesson’s goal."
+    ],
+    "question": "Which group contains the four central squares?",
+    "choices": [
+      "a1, a8, h1, h8",
+      "c1, f1, c8, f8",
+      "d4, e4, d5, e5"
+    ]
+  },
+  {
+    "id": "develop-purpose",
+    "chapter": 2,
+    "title": "Develop with purpose",
+    "topic": "Basic Opening Principles",
+    "pages": "25–29",
+    "story": "The book describes learning to bring knights and bishops into the game before launching queen or rook adventures. Choose useful squares, watch threats, and coordinate your pieces.",
+    "moves": [
+      "e4",
+      "e5"
+    ],
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+    "prompt": "White to move. Develop a knight toward the centre.",
+    "hints": [
+      "Both knights have useful central developing squares.",
+      "Nf3 attacks e5; Nc3 supports e4 and controls d5."
+    ],
+    "question": "Which pieces usually take priority in opening development?",
+    "choices": [
+      "The queen and rooks",
+      "Knights and bishops",
+      "Only the king"
+    ]
+  },
+  {
+    "id": "bishop-development",
+    "chapter": 2,
+    "title": "Give the bishop a job",
+    "topic": "Early Opening Influences",
+    "pages": "29",
+    "story": "In the illustrative game, White brings a bishop to c4, developing it while eyeing f7. Development is most useful when a piece helps a concrete plan.",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "d6"
+    ],
+    "fen": "rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3",
+    "prompt": "Develop the f1-bishop to aim at f7.",
+    "hints": [
+      "Look along the diagonal leading to f7.",
+      "The bishop can move to c4."
+    ],
+    "question": "What makes c4 purposeful for this bishop?",
+    "choices": [
+      "It directly attacks the queen",
+      "It develops while pointing at f7",
+      "It guarantees a checkmate"
+    ]
+  },
+  {
+    "id": "safe-king",
+    "chapter": 2,
+    "title": "Give your king shelter",
+    "topic": "Basic Opening Principles",
+    "pages": "26",
+    "story": "The book’s opening goal is a safe king and a playable middlegame. This original practice position applies that principle: White has cleared the kingside and can castle legally.",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5"
+    ],
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    "prompt": "White to move. Castle kingside to improve king safety.",
+    "hints": [
+      "Castling moves the king and rook together.",
+      "Select the king on e1, then g1."
+    ],
+    "question": "Which condition prevents castling?",
+    "choices": [
+      "Your opponent has a queen",
+      "You have moved a pawn",
+      "Your king would cross an attacked square"
+    ]
+  },
+  {
+    "id": "legall-combination",
+    "chapter": 2,
+    "title": "Pieces working together",
+    "topic": "Early Opening Influences",
+    "pages": "29–30",
+    "story": "In the book’s Legall’s Mate example, Black takes the queen and overlooks the coordinated minor pieces. The lesson is to calculate forcing moves rather than judge a position by material alone.",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "d6",
+      "Bc4",
+      "Bg4",
+      "Nc3",
+      "h6",
+      "Nxe5",
+      "Bxd1"
+    ],
+    "fen": "rn1qkbnr/ppp2pp1/3p3p/4N3/2B1P3/2N5/PPPP1PPP/R1BbK2R w KQkq - 0 6",
+    "prompt": "White to move. Find the forcing check, then finish the mate.",
+    "hints": [
+      "Look for a bishop check on f7.",
+      "After the king moves to e7, bring the c3-knight to d5."
+    ],
+    "question": "Why is losing the queen acceptable in this example?",
+    "choices": [
+      "The resulting attack forces checkmate",
+      "Queens are unimportant",
+      "Sacrifices always work"
+    ]
+  },
+  {
+    "id": "review-grow",
+    "chapter": 2,
+    "title": "Learn from the game",
+    "topic": "Introduction to Classical Openings",
+    "pages": "28–32",
+    "story": "Seirawan explains how recording games, analysing them and playing stronger opponents helped him improve. Review a familiar position and identify a useful move for yourself. The next step is to apply these principles in real games.",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6"
+    ],
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    "prompt": "Develop your f1-bishop to an active square: c4 or b5.",
+    "hints": [
+      "Bring a new piece into play.",
+      "Bc4 aims at f7; Bb5 pressures the defender on c6."
+    ],
+    "question": "What should you do after a difficult loss?",
+    "choices": [
+      "Review the moves and identify a lesson",
+      "Forget every move",
+      "Conclude that you cannot improve"
+    ]
+  }
+]
